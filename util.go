@@ -1,6 +1,7 @@
 package gobas
 
 import (
+	"constraints"
 	"strconv"
 	"strings"
 )
@@ -33,15 +34,15 @@ func splitOutsideQuotes(s string, sep rune) []string {
 	return sl
 }
 
-func parseInts(s string, sep rune) ([]int, error) {
-	var ns []int
+func parseInts[T constraints.Integer](s string, sep rune) ([]T, error) {
+	var ns []T
 	sl := splitOutsideQuotes(s, sep)
 	for _, sn := range sl {
 		n, err := strconv.ParseInt(trimWhite(sn), 10, 64)
 		if err != nil {
 			return nil, err
 		}
-		ns = append(ns, int(n))
+		ns = append(ns, T(n))
 	}
 	return ns, nil
 }

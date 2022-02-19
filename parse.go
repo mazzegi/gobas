@@ -10,23 +10,27 @@ import (
 
 type parseFunc func(string) (Stmt, error)
 
-var parseFuncs = map[string]parseFunc{
-	"DATA":    parseDATA,
-	"DEF":     parseDEF,
-	"DIM":     parseDIM,
-	"END":     parseEND,
-	"FOR":     parseFOR,
-	"GOSUB":   parseGOSUB,
-	"GOTO":    parseGOTO,
-	"IF":      parseIF,
-	"LET":     parseLET,
-	"NEXT":    parseNEXT,
-	"ON":      parseON,
-	"READ":    parseREAD,
-	"REM":     parseREM,
-	"RESTORE": parseRESTORE,
-	"RETURN":  parseRETURN,
-	"STOP":    parseSTOP,
+var parseFuncs map[string]parseFunc
+
+func init() {
+	parseFuncs = map[string]parseFunc{
+		"DATA":    parseDATA,
+		"DEF":     parseDEF,
+		"DIM":     parseDIM,
+		"END":     parseEND,
+		"FOR":     parseFOR,
+		"GOSUB":   parseGOSUB,
+		"GOTO":    parseGOTO,
+		"IF":      parseIF,
+		"LET":     parseLET,
+		"NEXT":    parseNEXT,
+		"ON":      parseON,
+		"READ":    parseREAD,
+		"REM":     parseREM,
+		"RESTORE": parseRESTORE,
+		"RETURN":  parseRETURN,
+		"STOP":    parseSTOP,
+	}
 }
 
 func parseLine(rl rawLine) ([]Stmt, error) {
@@ -132,7 +136,7 @@ func parseDIM(s string) (Stmt, error) {
 		if err != nil {
 			return nil, err
 		}
-		ns, err := parseInts(dims, ',')
+		ns, err := parseInts[int](dims, ',')
 		if err != nil {
 			return nil, err
 		}
@@ -229,6 +233,32 @@ func parseIF(s string) (Stmt, error) {
 		if err != nil {
 			return nil, err
 		}
+		// is ifDo a (line)number
+		if ifDoLine, err := strconv.ParseUint(ifDo, 10, 32); err == nil {
+			// is elseDo also ?
+			if elseDoLine, err := strconv.ParseUint(elseDo, 10, 32); err == nil {
+				return IFELSELN{
+					Expr:     condExpr,
+					Line:     uint32(ifDoLine),
+					ElseLine: uint32(elseDoLine),
+				}, nil
+			}
+			return nil, errors.Errorf("in if else statements all branches must be either lines or statements")
+		} else {
+			ifDoStmts, err := parseStmts(ifDo)
+			if err != nil {
+				return nil, err
+			}
+			elseDoStmts, err := parseStmts(elseDo)
+			if err != nil {
+				return nil, err
+			}
+			return IFELSESTMT{
+				Expr:      condExpr,
+				Stmts:     ifDoStmts,
+				ElseStmts: elseDoStmts,
+			}, nil
+		}
 	} else {
 		// is it a (line)number
 		if n, err := strconv.ParseUint(rest, 10, 32); err == nil {
@@ -247,42 +277,101 @@ func parseIF(s string) (Stmt, error) {
 			}, nil
 		}
 	}
-
-	//TODO check diff. kinds of IF
-	stmt := IFLN{}
-	return stmt, nil
 }
 
 func parseLET(s string) (Stmt, error) {
-	stmt := LET{}
-	return stmt, nil
+	var varName string
+	var exprStr string
+	_, err := fmt.Sscanf(s, "%s=%s", &varName, &exprStr)
+	if err != nil {
+		return nil, err
+	}
+	expr, err := parseExpr(exprStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return LET{
+		Var:  varName,
+		Expr: expr,
+	}, nil
 }
+
 func parseNEXT(s string) (Stmt, error) {
-	stmt := NEXT{}
-	return stmt, nil
+	varName := trimWhite(s)
+	if varName == "" {
+		return nil, errors.Errorf("var name is empty")
+	}
+	return NEXT{
+		Var: varName,
+	}, nil
 }
+
 func parseON(s string) (Stmt, error) {
-	// TODO: check diff. kinds of on
-	stmt := ONGOSUB{}
-	return stmt, nil
+	var exprStr string
+	var linesStr string
+	if strings.Contains(s, " GOSUB ") {
+		_, err := fmt.Sscanf(s, "%s GOSUB %s", &exprStr, &linesStr)
+		if err != nil {
+			return nil, err
+		}
+		expr, err := parseExpr(exprStr)
+		if err != nil {
+			return nil, err
+		}
+		lines, err := parseInts[uint32](linesStr, ',')
+		if err != nil {
+			return nil, err
+		}
+		return ONGOSUB{
+			Expr:  expr,
+			Lines: lines,
+		}, nil
+	} else if strings.Contains(s, " GOTO ") {
+		_, err := fmt.Sscanf(s, "%s GOTO %s", &exprStr, &linesStr)
+		if err != nil {
+			return nil, err
+		}
+		expr, err := parseExpr(exprStr)
+		if err != nil {
+			return nil, err
+		}
+		lines, err := parseInts[uint32](linesStr, ',')
+		if err != nil {
+			return nil, err
+		}
+		return ONGOSUB{
+			Expr:  expr,
+			Lines: lines,
+		}, nil
+	} else {
+		return nil, errors.Errorf("invalid ON statement %q", s)
+	}
 }
+
 func parseREAD(s string) (Stmt, error) {
+	//TODO
 	stmt := READ{}
 	return stmt, nil
 }
 func parseREM(s string) (Stmt, error) {
-	stmt := REM{}
+	stmt := REM{
+		What: s,
+	}
 	return stmt, nil
 }
 func parseRESTORE(s string) (Stmt, error) {
+	//TODO
 	stmt := RESTORE{}
 	return stmt, nil
 }
 func parseRETURN(s string) (Stmt, error) {
+	//TODO
 	stmt := RETURN{}
 	return stmt, nil
 }
 func parseSTOP(s string) (Stmt, error) {
+	//TODO
 	stmt := STOP{}
 	return stmt, nil
 }
