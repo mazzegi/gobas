@@ -24,9 +24,9 @@ var rawReadTestCases = []rawReadTestCase{
 		`,
 		expectErr: false,
 		expectOut: []rawLine{
-			{120, `PRINT "YOU NOW HAVE ";Q;" DOLLARS."`},
-			{130, `PRINT`},
-			{140, `GOTO 260`},
+			{1, 120, `PRINT "YOU NOW HAVE ";Q;" DOLLARS."`},
+			{2, 130, `PRINT`},
+			{3, 140, `GOTO 260`},
 		},
 	},
 	{
@@ -38,9 +38,9 @@ var rawReadTestCases = []rawReadTestCase{
 		`,
 		expectErr: false,
 		expectOut: []rawLine{
-			{120, `PRINT "YOU NOW HAVE ";Q;" DOLLARS."`},
-			{130, `PRINT`},
-			{140, `GOTO 260`},
+			{1, 120, `PRINT "YOU NOW HAVE ";Q;" DOLLARS."`},
+			{2, 130, `PRINT`},
+			{3, 140, `GOTO 260`},
 		},
 	},
 	{
@@ -54,9 +54,9 @@ var rawReadTestCases = []rawReadTestCase{
 		`,
 		expectErr: false,
 		expectOut: []rawLine{
-			{120, `PRINT "YOU NOW HAVE ";Q;" DOLLARS."`},
-			{130, `PRINT`},
-			{140, `GOTO 260`},
+			{2, 120, `PRINT "YOU NOW HAVE ";Q;" DOLLARS."`},
+			{3, 130, `PRINT`},
+			{5, 140, `GOTO 260`},
 		},
 	},
 	{

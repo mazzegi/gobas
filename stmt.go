@@ -1,8 +1,19 @@
 package gobas
 
-const StmtSep = ";"
+import "strings"
+
+func IsString(varName string) bool {
+	return strings.HasSuffix(varName, "$")
+}
+
+const StmtSep = ':'
 
 type Stmt interface{}
+
+type Array struct {
+	Var        string
+	Dimensions []int
+}
 
 type DATA struct {
 	//TODO
@@ -14,8 +25,7 @@ type DEF struct {
 }
 
 type DIM struct {
-	Size     uint32
-	IsString bool
+	Arrays []Array
 }
 
 type END struct{}
@@ -55,6 +65,10 @@ type IFELSESTMT struct {
 	Expr      Expr
 	Stmts     []Stmt
 	ElseStmts []Stmt
+}
+
+type INPUT struct {
+	//TODO
 }
 
 type LET struct {

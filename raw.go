@@ -11,8 +11,9 @@ import (
 )
 
 type rawLine struct {
-	num  uint32
-	text string
+	sourceLine int
+	num        uint32
+	text       string
 }
 
 func rawRead(r io.Reader) ([]rawLine, error) {
@@ -21,7 +22,7 @@ func rawRead(r io.Reader) ([]rawLine, error) {
 	var lno int = -1
 	for scanner.Scan() {
 		lno++
-		ln := strings.Trim(scanner.Text(), " \r\n\t")
+		ln := trimWhite(scanner.Text())
 		if ln == "" {
 			continue
 		}
@@ -34,8 +35,9 @@ func rawRead(r io.Reader) ([]rawLine, error) {
 			return nil, errors.Wrapf(err, "scanning line-number in input-line %d", lno)
 		}
 		rls = append(rls, rawLine{
-			num:  uint32(num),
-			text: strings.Trim(text, " \r\n\t"),
+			sourceLine: lno,
+			num:        uint32(num),
+			text:       trimWhite(text),
 		})
 	}
 	return rls, nil
