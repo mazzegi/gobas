@@ -8,6 +8,22 @@ import (
 	"github.com/pkg/errors"
 )
 
+func ParseFile(fileName string) ([]Stmt, error) {
+	rls, err := rawReadFile(fileName)
+	if err != nil {
+		return nil, err
+	}
+	var stmts []Stmt
+	for _, rl := range rls {
+		lineStmts, err := parseLine(rl)
+		if err != nil {
+			return nil, err
+		}
+		stmts = append(stmts, lineStmts...)
+	}
+	return stmts, nil
+}
+
 type parseFunc func(string) (Stmt, error)
 
 var parseFuncs map[string]parseFunc
@@ -121,9 +137,21 @@ func parseINPUT(s string) (Stmt, error) {
 }
 
 func parseASSIGN(s string) (Stmt, error) {
-	//TODO
-	stmt := ASSIGN{}
-	return stmt, nil
+	var varName string
+	var exprStr string
+	_, err := fmt.Sscanf(s, "%s=%s", &varName, &exprStr)
+	if err != nil {
+		return nil, err
+	}
+	expr, err := parseExpr(exprStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return ASSIGN{
+		Var:  varName,
+		Expr: expr,
+	}, nil
 }
 
 func parseDIM(s string) (Stmt, error) {
@@ -221,7 +249,7 @@ func parseIF(s string) (Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	condExpr, err := parseExpr(s)
+	condExpr, err := parseExpr(condExprStr)
 	if err != nil {
 		return nil, err
 	}
