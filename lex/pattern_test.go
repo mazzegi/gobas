@@ -123,6 +123,49 @@ func TestParsePattern(t *testing.T) {
 			fail:   true,
 			expect: &Pattern{},
 		},
+		{
+			in:   "{name:string}({value:int})",
+			fail: false,
+			expect: &Pattern{
+				Targets: []interface{}{
+					MatchTarget{
+						Name:   "name",
+						Array:  false,
+						Type:   "string",
+						Params: map[string]string{},
+					},
+					"(",
+					MatchTarget{
+						Name:   "value",
+						Array:  false,
+						Type:   "int",
+						Params: map[string]string{},
+					},
+					")",
+				},
+			},
+		},
+		{
+			in:   "{name:string}={expr:string}",
+			fail: false,
+			expect: &Pattern{
+				Targets: []interface{}{
+					MatchTarget{
+						Name:   "name",
+						Array:  false,
+						Type:   "string",
+						Params: map[string]string{},
+					},
+					"=",
+					MatchTarget{
+						Name:   "expr",
+						Array:  false,
+						Type:   "string",
+						Params: map[string]string{},
+					},
+				},
+			},
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("test #%02d", i), func(t *testing.T) {

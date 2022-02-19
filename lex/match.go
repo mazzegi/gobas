@@ -66,3 +66,7 @@ func ParseMatchTarget(s string) (MatchTarget, error) {
 	}
 	return mt, nil
 }
+
+func (mt MatchTarget) Eval(s string) (val interface{}, parsed int, err error) {
+	return
+}

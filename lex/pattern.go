@@ -89,3 +89,50 @@ func ParsePattern(s string) (*Pattern, error) {
 	}
 	return p, nil
 }
+
+func Eval(p *Pattern, s string) (Params, error) {
+	s = strings.TrimSpace(s)
+	var pos int
+
+	eatWhite := func() int {
+		var eaten int
+		for {
+			if s[pos] != ' ' {
+				return eaten
+			}
+			pos++
+			if pos >= len(s) {
+				return eaten
+			}
+			eaten++
+		}
+	}
+
+	ps := Params{}
+	for _, t := range p.Targets {
+		if pos >= len(s) {
+			return Params{}, errors.Errorf("EOF")
+		}
+		switch t := t.(type) {
+		case Whitespace:
+			wsEaten := eatWhite()
+			if wsEaten == 0 {
+				return Params{}, errors.Errorf("no whitespace where expected")
+			}
+		case string:
+			if !strings.HasPrefix(s[pos:], t) {
+				return Params{}, errors.Errorf("no match for string %q", t)
+			}
+			pos += len(t)
+		case MatchTarget:
+			v, parsed, err := t.Eval(s[pos:])
+			if err != nil {
+				return Params{}, err
+			}
+			ps[t.Name] = v
+			pos += parsed
+		}
+	}
+
+	return ps, nil
+}
