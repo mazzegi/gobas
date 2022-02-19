@@ -6,21 +6,24 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Whitespace struct{}
+//type Whitespace struct{}
+
+type Params map[string]interface{}
 
 type Pattern struct {
 	Targets []interface{}
 }
 
-func (p *Pattern) AppendTarget(t interface{}) {
-	if _, ok := t.(Whitespace); ok {
+func (p *Pattern) AppendTarget(t interface{}) error {
+	if _, ok := t.(MatchTarget); ok {
 		if len(p.Targets) > 0 {
-			if _, ok := p.Targets[len(p.Targets)-1].(Whitespace); ok {
-				return
+			if _, ok := p.Targets[len(p.Targets)-1].(MatchTarget); ok {
+				return errors.Errorf("a match-target cannot immediately follwo a match-target")
 			}
 		}
 	}
 	p.Targets = append(p.Targets, t)
+	return nil
 }
 
 // ParsePattern parses patterns like "ON {expr:string} GOSUB {lines:[]int}"
@@ -35,11 +38,17 @@ func ParsePattern(s string) (*Pattern, error) {
 			if err != nil {
 				return errors.Wrapf(err, "parse match-target %q", curr)
 			}
-			p.AppendTarget(mt)
+			err = p.AppendTarget(mt)
+			if err != nil {
+				return err
+			}
 		} else {
 			str := strings.TrimSpace(curr)
 			if str != "" {
-				p.AppendTarget(str)
+				err := p.AppendTarget(str)
+				if err != nil {
+					return err
+				}
 			}
 		}
 		curr = ""
@@ -77,7 +86,7 @@ func ParsePattern(s string) (*Pattern, error) {
 				if err != nil {
 					return nil, err
 				}
-				p.AppendTarget(Whitespace{})
+				//p.AppendTarget(Whitespace{})
 			} else {
 				curr += string(r)
 			}
@@ -90,7 +99,7 @@ func ParsePattern(s string) (*Pattern, error) {
 	return p, nil
 }
 
-func Eval(p *Pattern, s string) (Params, error) {
+func (p *Pattern) Eval(s string) (Params, error) {
 	s = strings.TrimSpace(s)
 	var pos int
 
@@ -109,28 +118,47 @@ func Eval(p *Pattern, s string) (Params, error) {
 	}
 
 	ps := Params{}
-	for _, t := range p.Targets {
+	for i, t := range p.Targets {
 		if pos >= len(s) {
 			return Params{}, errors.Errorf("EOF")
 		}
 		switch t := t.(type) {
-		case Whitespace:
-			wsEaten := eatWhite()
-			if wsEaten == 0 {
-				return Params{}, errors.Errorf("no whitespace where expected")
-			}
+		// case Whitespace:
+		// 	wsEaten := eatWhite()
+		// 	if wsEaten == 0 {
+		// 		return Params{}, errors.Errorf("no whitespace where expected")
+		// 	}
 		case string:
+			eatWhite()
 			if !strings.HasPrefix(s[pos:], t) {
 				return Params{}, errors.Errorf("no match for string %q", t)
 			}
 			pos += len(t)
 		case MatchTarget:
-			v, parsed, err := t.Eval(s[pos:])
+			eatWhite()
+			var smt string
+			if i == len(p.Targets)-1 {
+				smt = s[pos:]
+			} else {
+				//peek next string
+				next, ok := p.Targets[i+1].(string)
+				if !ok {
+					return Params{}, errors.Errorf("next is not a string")
+				}
+				nextIdx := strings.Index(s[pos:], next)
+				if nextIdx < 0 {
+					return Params{}, errors.Errorf("no match for next %q", next)
+				}
+				smt = s[pos : pos+nextIdx]
+			}
+			smt = strings.TrimSpace(smt)
+
+			v, err := t.Eval(smt)
 			if err != nil {
 				return Params{}, err
 			}
 			ps[t.Name] = v
-			pos += parsed
+			pos += len(smt)
 		}
 	}
 

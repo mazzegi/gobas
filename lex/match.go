@@ -1,6 +1,7 @@
 package lex
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -67,6 +68,64 @@ func ParseMatchTarget(s string) (MatchTarget, error) {
 	return mt, nil
 }
 
-func (mt MatchTarget) Eval(s string) (val interface{}, parsed int, err error) {
-	return
+func (mt MatchTarget) Eval(s string) (interface{}, error) {
+	if mt.Array {
+		return mt.EvalArray(s)
+	}
+
+	switch mt.Type {
+	case Int:
+		v, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		return int(v), nil
+	case String:
+		return s, nil
+	case Float:
+		v, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return nil, err
+		}
+		return v, nil
+	default:
+		return nil, errors.Errorf("unsupported type %q", mt.Type)
+	}
+}
+
+func (mt MatchTarget) EvalArray(s string) (interface{}, error) {
+	var sep = ","
+	if psep, ok := mt.Params["sep"]; ok {
+		sep = psep
+	}
+	sl := strings.Split(s, sep)
+
+	switch mt.Type {
+	case Int:
+		return convertStrings(sl, func(s string) (int, error) {
+			v, err := strconv.ParseInt(s, 10, 64)
+			return int(v), err
+		})
+	case String:
+		return sl, nil
+	case Float:
+		return convertStrings(sl, func(s string) (float64, error) {
+			v, err := strconv.ParseFloat(s, 64)
+			return v, err
+		})
+	default:
+		return nil, errors.Errorf("unsupported type %q", mt.Type)
+	}
+}
+
+func convertStrings[T any](sl []string, parseFnc func(s string) (T, error)) ([]T, error) {
+	var ts []T
+	for _, s := range sl {
+		t, err := parseFnc(s)
+		if err != nil {
+			return nil, err
+		}
+		ts = append(ts, t)
+	}
+	return ts, nil
 }
