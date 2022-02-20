@@ -1,6 +1,7 @@
 package lex
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -8,8 +9,17 @@ import (
 
 type Params map[string]interface{}
 
+func (ps Params) Format() string {
+	var sl []string
+	for k, v := range ps {
+		sl = append(sl, fmt.Sprintf("%q =[%v]", k, v))
+	}
+	return strings.Join(sl, ", ")
+}
+
 type Pattern struct {
 	Prefix  string
+	Name    string
 	Targets []interface{}
 }
 
@@ -29,6 +39,15 @@ func (p *Pattern) AppendTarget(t interface{}) error {
 
 	p.Targets = append(p.Targets, t)
 	return nil
+}
+
+func ParsePatternWithName(name string, s string) (*Pattern, error) {
+	p, err := ParsePattern(s)
+	if err != nil {
+		return nil, err
+	}
+	p.Name = name
+	return p, nil
 }
 
 // ParsePattern parses patterns like "ON {expr:string} GOSUB {lines:[]int}"

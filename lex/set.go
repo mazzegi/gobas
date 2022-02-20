@@ -8,38 +8,45 @@ import (
 
 func NewSet() *Set {
 	return &Set{
-		patterns: map[string]*Pattern{},
+		patterns: []*Pattern{},
 	}
 }
 
 type Set struct {
-	patterns map[string]*Pattern
+	patterns []*Pattern
+}
+
+func (s *Set) MustAdd(name string, pattern string) {
+	err := s.Add(name, pattern)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (s *Set) Add(name string, pattern string) error {
-	p, err := ParsePattern(pattern)
+	p, err := ParsePatternWithName(name, pattern)
 	if err != nil {
 		return err
 	}
-	s.patterns[name] = p
+	s.patterns = append(s.patterns, p)
 	return nil
 }
 
 func (s *Set) Eval(input string) (Params, string, error) {
-	for name, p := range s.patterns {
+	for _, p := range s.patterns {
 		if p.Prefix != "" && strings.HasPrefix(input, p.Prefix) {
 			if ps, err := p.Eval(input); err == nil {
-				return ps, name, nil
+				return ps, p.Name, nil
 			}
 		}
 	}
 	// none of those with prefix worked - try those without
-	for name, p := range s.patterns {
+	for _, p := range s.patterns {
 		if p.Prefix != "" {
 			continue
 		}
 		if ps, err := p.Eval(input); err == nil {
-			return ps, name, nil
+			return ps, p.Name, nil
 		}
 	}
 	return Params{}, "", errors.Errorf("found no pattern matching input %q", input)
