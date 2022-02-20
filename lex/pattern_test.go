@@ -1,6 +1,7 @@
 package lex
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
@@ -306,6 +307,11 @@ func TestParsePattern(t *testing.T) {
 	}
 }
 
+func dumpParams(ps Params) string {
+	bs, _ := json.Marshal(ps)
+	return string(bs)
+}
+
 func TestPatternEval(t *testing.T) {
 	tests := []struct {
 		pattern string
@@ -348,6 +354,17 @@ func TestPatternEval(t *testing.T) {
 				"expr": "SIN(x/57.3)",
 			},
 		},
+		{
+			pattern: "FOR {ivar:string}={iexpr:string} TO {toexpr:string} STEP {stepexpr:string}",
+			input:   "FOR j = 2 TO N STEP 3 ",
+			fail:    false,
+			params: Params{
+				"ivar":     "j",
+				"iexpr":    "2",
+				"toexpr":   "N",
+				"stepexpr": "3",
+			},
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("test #%02d", i), func(t *testing.T) {
@@ -362,7 +379,7 @@ func TestPatternEval(t *testing.T) {
 				}
 			} else {
 				if !paramsEqual(test.params, ps) {
-					t.Fatalf("want %v, have %v", test.params, ps)
+					t.Fatalf("want %s, have %s", dumpParams(test.params), dumpParams(ps))
 				}
 			}
 		})

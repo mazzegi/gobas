@@ -6,11 +6,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-//type Whitespace struct{}
-
 type Params map[string]interface{}
 
 type Pattern struct {
+	Prefix  string
 	Targets []interface{}
 }
 
@@ -22,6 +21,12 @@ func (p *Pattern) AppendTarget(t interface{}) error {
 			}
 		}
 	}
+
+	// if first target is a string, take it as prefix
+	if st, ok := t.(string); ok && len(p.Targets) == 0 {
+		p.Prefix = st
+	}
+
 	p.Targets = append(p.Targets, t)
 	return nil
 }
@@ -86,7 +91,6 @@ func ParsePattern(s string) (*Pattern, error) {
 				if err != nil {
 					return nil, err
 				}
-				//p.AppendTarget(Whitespace{})
 			} else {
 				curr += string(r)
 			}
@@ -123,11 +127,6 @@ func (p *Pattern) Eval(s string) (Params, error) {
 			return Params{}, errors.Errorf("EOF")
 		}
 		switch t := t.(type) {
-		// case Whitespace:
-		// 	wsEaten := eatWhite()
-		// 	if wsEaten == 0 {
-		// 		return Params{}, errors.Errorf("no whitespace where expected")
-		// 	}
 		case string:
 			eatWhite()
 			if !strings.HasPrefix(s[pos:], t) {
@@ -136,9 +135,9 @@ func (p *Pattern) Eval(s string) (Params, error) {
 			pos += len(t)
 		case MatchTarget:
 			eatWhite()
-			var smt string
+			var mts string
 			if i == len(p.Targets)-1 {
-				smt = s[pos:]
+				mts = s[pos:]
 			} else {
 				//peek next string
 				next, ok := p.Targets[i+1].(string)
@@ -149,16 +148,16 @@ func (p *Pattern) Eval(s string) (Params, error) {
 				if nextIdx < 0 {
 					return Params{}, errors.Errorf("no match for next %q", next)
 				}
-				smt = s[pos : pos+nextIdx]
+				mts = s[pos : pos+nextIdx]
 			}
-			smt = strings.TrimSpace(smt)
+			mts = strings.TrimSpace(mts)
 
-			v, err := t.Eval(smt)
+			v, err := t.Eval(mts)
 			if err != nil {
 				return Params{}, err
 			}
 			ps[t.Name] = v
-			pos += len(smt)
+			pos += len(mts)
 		}
 	}
 
