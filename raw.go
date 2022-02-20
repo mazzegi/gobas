@@ -12,7 +12,7 @@ import (
 
 type rawLine struct {
 	sourceLine int
-	num        uint32
+	num        int
 	text       string
 }
 
@@ -36,7 +36,7 @@ func rawRead(r io.Reader) ([]rawLine, error) {
 		}
 		rls = append(rls, rawLine{
 			sourceLine: lno,
-			num:        uint32(num),
+			num:        int(num),
 			text:       trimWhite(text),
 		})
 	}

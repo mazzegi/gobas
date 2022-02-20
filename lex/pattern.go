@@ -17,6 +17,33 @@ func (ps Params) Format() string {
 	return strings.Join(sl, ", ")
 }
 
+func (ps Params) MustString(key string) string {
+	v, ok := ps[key]
+	if !ok {
+		panic(errors.Errorf("no such key %q", key))
+	}
+	s, ok := v.(string)
+	if !ok {
+		panic(errors.Errorf("%q is not a string (but a %T)", key, v))
+	}
+	return s
+}
+
+func MustParam[T any](ps Params, key string) T {
+	v, ok := ps[key]
+	if !ok {
+		panic(errors.Errorf("no such key %q", key))
+	}
+	t, ok := v.(T)
+	if !ok {
+		var tp T
+		panic(errors.Errorf("%q cannot convert %T to %T", key, v, tp))
+	}
+	return t
+}
+
+//
+
 type Pattern struct {
 	Prefix  string
 	Name    string

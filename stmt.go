@@ -17,6 +17,7 @@ type Array struct {
 
 type DATA struct {
 	//TODO
+	Expr string
 }
 
 type DEF struct {
@@ -38,22 +39,22 @@ type FOR struct {
 }
 
 type GOSUB struct {
-	Line uint32
+	Line int
 }
 
 type GOTO struct {
-	Line uint32
+	Line int
 }
 
 type IFLN struct {
 	Expr Expr
-	Line uint32
+	Line int
 }
 
 type IFELSELN struct {
 	Expr     Expr
-	Line     uint32
-	ElseLine uint32
+	Line     int
+	ElseLine int
 }
 
 type IFSTMT struct {
@@ -87,12 +88,12 @@ type NEXT struct {
 
 type ONGOSUB struct {
 	Expr  Expr
-	Lines []uint32
+	Lines []int
 }
 
 type ONGOTO struct {
 	Expr  Expr
-	Lines []uint32
+	Lines []int
 }
 
 type PRINT struct {
