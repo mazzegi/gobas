@@ -98,19 +98,22 @@ func (mt MatchTarget) EvalArray(s string) (interface{}, error) {
 	if psep, ok := mt.Params["sep"]; ok {
 		sep = psep
 	}
-	sl := strings.Split(s, sep)
+	//sl := strings.Split(s, sep)
+	sl := splitSkipBrackets(s, []rune(sep)[0])
 
 	switch mt.Type {
 	case Int:
 		return convertStrings(sl, func(s string) (int, error) {
-			v, err := strconv.ParseInt(s, 10, 64)
+			v, err := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
 			return int(v), err
 		})
 	case String:
-		return sl, nil
+		return convertStrings(sl, func(s string) (string, error) {
+			return strings.TrimSpace(s), nil
+		})
 	case Float:
 		return convertStrings(sl, func(s string) (float64, error) {
-			v, err := strconv.ParseFloat(s, 64)
+			v, err := strconv.ParseFloat(strings.TrimSpace(s), 64)
 			return v, err
 		})
 	default:

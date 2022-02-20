@@ -135,11 +135,6 @@ func patternsEqual(p1, p2 *Pattern) bool {
 			if !ok || t1 != t2 {
 				return false
 			}
-		// case Whitespace:
-		// 	_, ok := p2.Targets[i].(Whitespace)
-		// 	if !ok {
-		// 		return false
-		// 	}
 		case MatchTarget:
 			t2, ok := p2.Targets[i].(MatchTarget)
 			if !ok || !matchTargetsEqual(t1, t2) {
@@ -164,7 +159,6 @@ func TestParsePattern(t *testing.T) {
 			expect: &Pattern{
 				Targets: []interface{}{
 					"GOTO",
-					//// Whitespace{},
 					MatchTarget{
 						Name:   "line",
 						Array:  false,
@@ -180,16 +174,14 @@ func TestParsePattern(t *testing.T) {
 			expect: &Pattern{
 				Targets: []interface{}{
 					"ON",
-					// Whitespace{},
 					MatchTarget{
 						Name:   "expr",
 						Array:  false,
 						Type:   "string",
 						Params: map[string]string{},
 					},
-					// Whitespace{},
+
 					"GOSUB",
-					// Whitespace{},
 					MatchTarget{
 						Name:  "lines",
 						Array: true,
@@ -207,7 +199,6 @@ func TestParsePattern(t *testing.T) {
 			expect: &Pattern{
 				Targets: []interface{}{
 					"ON",
-					// Whitespace{},
 					MatchTarget{
 						Name:   "expr",
 						Array:  false,
@@ -215,7 +206,6 @@ func TestParsePattern(t *testing.T) {
 						Params: map[string]string{},
 					},
 					"GOSUB",
-					// Whitespace{},
 					MatchTarget{
 						Name:  "lines",
 						Array: true,
@@ -286,6 +276,23 @@ func TestParsePattern(t *testing.T) {
 			},
 		},
 		{
+			in:   "DIM {arrayexprs:[]string?sep=,}",
+			fail: false,
+			expect: &Pattern{
+				Targets: []interface{}{
+					"DIM",
+					MatchTarget{
+						Name:  "arrayexprs",
+						Array: true,
+						Type:  "string",
+						Params: map[string]string{
+							"sep": ",",
+						},
+					},
+				},
+			},
+		},
+		{
 			in:     "{name:string}{expr:string}",
 			fail:   true,
 			expect: &Pattern{},
@@ -319,6 +326,14 @@ func TestPatternEval(t *testing.T) {
 		fail    bool
 		params  Params
 	}{
+		{
+			pattern: "DIM {arrayexprs:[]string?sep=,}",
+			input:   "DIM AX(1,2), BC$(X,Y,Z)",
+			fail:    false,
+			params: Params{
+				"arrayexprs": []string{"AX(1,2)", "BC$(X,Y,Z)"},
+			},
+		},
 		{
 			pattern: "GOTO {line:int}",
 			input:   "GOTO 22",

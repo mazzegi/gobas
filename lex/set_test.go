@@ -8,6 +8,8 @@ import (
 func TestSetEval(t *testing.T) {
 	// setup set
 	set := NewSet()
+	//set.Add("array", "{var:string}({dimexprs:[]string?sep=,})")
+	set.Add("dim", "DIM {arrayexprs:[]string?sep=,}")
 	set.Add("goto", "GOTO {line:int}")
 	set.Add("on-gosub", "ON {expr:string} GOSUB {lines:[]int}")
 	set.Add("on-goto", "ON {expr:string} GOTO {lines:[]int}")
@@ -21,6 +23,13 @@ func TestSetEval(t *testing.T) {
 		fail   bool
 		params Params
 	}{
+		{
+			input: "DIM AX(1,2), BC$(X,Y,Z)",
+			fail:  false,
+			params: Params{
+				"arrayexprs": []string{"AX(1,2)", "BC$(X,Y,Z)"},
+			},
+		},
 		{
 			input: "GOTO 22",
 			fail:  false,
