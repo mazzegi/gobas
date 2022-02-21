@@ -25,9 +25,10 @@ func (vs *Vars) LookupVar(name string) (interface{}, error) {
 }
 
 func (vs *Vars) CanEvalFloat(name string) bool {
-	v, ok := vs.vars[name]
+	_, ok := vs.vars[name]
 	if !ok {
 		return false
 	}
-	return canConvertToFloat(v)
+	//return canConvertToFloat(v)
+	return true
 }

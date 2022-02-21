@@ -82,3 +82,38 @@ func (e FuncEvaler) Push(op Op, ev Evaler) Evaler {
 func (e FuncEvaler) CanEvalFloat(lu Lookuper, funcs *Funcs) bool {
 	return funcs.CanEvalFloat(e.Name)
 }
+
+//
+
+func MakeFloatFuncEvaler(ev Evaler, fnc func(v float64) float64) FloatFuncEvaler {
+	return FloatFuncEvaler{
+		ev:  ev,
+		fnc: fnc,
+	}
+}
+
+type FloatFuncEvaler struct {
+	ev  Evaler
+	fnc func(v float64) float64
+}
+
+func (e FloatFuncEvaler) Eval(lu Lookuper, funcs *Funcs) (interface{}, error) {
+	v, err := e.ev.Eval(lu, funcs)
+	if err != nil {
+		return nil, err
+	}
+	f, err := convertToFloat(v)
+	if err != nil {
+		return nil, err
+	}
+	return e.fnc(f), nil
+}
+
+func (e FloatFuncEvaler) Push(op Op, ev Evaler) Evaler {
+	s := NewStack(op, e)
+	s.Push(op, ev)
+	return s
+}
+func (e FloatFuncEvaler) CanEvalFloat(lu Lookuper, funcs *Funcs) bool {
+	return true
+}

@@ -1,6 +1,11 @@
 package expr
 
-import "github.com/pkg/errors"
+import (
+	"strconv"
+	"strings"
+
+	"github.com/pkg/errors"
+)
 
 func NewParser(expr string, funcs *Funcs) *Parser {
 	return &Parser{
@@ -30,21 +35,7 @@ func (p *Parser) Parse() (*Stack, error) {
 	var curr string
 	var lastOp byte
 
-	// num := func(s string) (float64, error) {
-	// 	if s == "" {
-	// 		return 0, errors.Errorf("empty identifier")
-	// 	}
-	// 	if v, err := strconv.ParseFloat(s, 64); err == nil {
-	// 		return v, nil
-	// 	} else {
-	// 		v, ok := e.lookup(s)
-	// 		if !ok {
-	// 			return 0, errors.Errorf("no such identifier %q", curr)
-	// 		}
-	// 		return v, nil
-	// 	}
-	// }
-	vars := NewVars()
+	//vars := NewVars()
 	var stack *Stack
 	push := func(ev Evaler) error {
 		defer func() {
@@ -54,9 +45,9 @@ func (p *Parser) Parse() (*Stack, error) {
 		if stack == nil {
 			switch lastOp {
 			case minus:
-				if !ev.CanEvalFloat(vars, p.funcs) {
-					return errors.Errorf("cannot eval float")
-				}
+				// if !ev.CanEvalFloat(vars, p.funcs) {
+				// 	return errors.Errorf("cannot eval float")
+				// }
 				stack = NewStack(OpPlus, ev)
 				return nil
 			case times, div, exp:
@@ -68,26 +59,21 @@ func (p *Parser) Parse() (*Stack, error) {
 		if lastOp == 0 {
 			return errors.Errorf("missing operator")
 		}
-		if !ev.CanEvalFloat(vars, p.funcs) {
-			return errors.Errorf("cannot eval float")
-		}
-		Add an evaler, which may perform some ops on a float value like -/1/...
+		// if !ev.CanEvalFloat(vars, p.funcs) {
+		// 	return errors.Errorf("cannot eval float")
+		// }
 
-		f, err := convertToFloat(v)
-		if err != nil {
-			return err
-		}
 		switch lastOp {
 		case plus:
-			stack.Push(OpPlus, MakeValueEvaler(f))
+			stack.Push(OpPlus, ev)
 		case minus:
-			stack.Push(OpPlus, MakeValueEvaler(-f))
+			stack.Push(OpPlus, MakeFloatFuncEvaler(ev, func(f float64) float64 { return -f }))
 		case times:
-			stack.Push(OpTimes, MakeValueEvaler(f))
+			stack.Push(OpTimes, ev)
 		case div:
-			stack.Push(OpTimes, MakeValueEvaler(1.0/f))
+			stack.Push(OpTimes, MakeFloatFuncEvaler(ev, func(f float64) float64 { return -1.0 / f }))
 		case exp:
-			stack.Push(OpExp, MakeValueEvaler(f))
+			stack.Push(OpExp, ev)
 		}
 		return nil
 	}
@@ -96,12 +82,19 @@ func (p *Parser) Parse() (*Stack, error) {
 		if curr == "" {
 			return nil
 		}
-		// this is either a number, string or variable
-		if v, err := num(curr); err == nil {
-			return push(v)
+		var ev Evaler
+
+		if strings.HasPrefix(curr, `"`) && strings.HasSuffix(curr, `"`) {
+			curr = strings.TrimPrefix(curr, `"`)
+			curr = strings.TrimSuffix(curr, `"`)
+			ev = StringEvaler(curr)
+		} else if f, err := strconv.ParseFloat(curr, 10); err == nil {
+			ev = MakeNumberEvaler(f)
 		} else {
-			return err
+			ev = VarEvaler(curr)
 		}
+
+		return push(ev)
 	}
 
 	//fmt.Printf("eval: %q\n", e.expr)
