@@ -11,8 +11,8 @@ type FloatFunc func([]interface{}) (float64, error)
 
 func scanArg(v interface{}, arg interface{}) error {
 	rvarg := reflect.ValueOf(arg)
-	if rvarg.Kind() != reflect.Struct {
-		return errors.Errorf("cannot scan into a non-struct")
+	if rvarg.Kind() != reflect.Pointer {
+		return errors.Errorf("cannot scan into a non-pointer")
 	}
 	argelem := rvarg.Elem()
 	if !argelem.CanSet() {

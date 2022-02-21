@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"math"
 	"testing"
-
-	"github.com/pkg/errors"
 )
 
 func dumpStack(s *Stack) string {
@@ -21,14 +19,18 @@ func floatsEqual(f1, f2 float64) bool {
 func setupFuncs() *Funcs {
 	fs := NewFuncs()
 	fs.AddFloatFunc("sqrt", func(vs []interface{}) (float64, error) {
-		if len(vs) != 1 {
-			return 0, errors.Errorf("expect 1 param, got %d", len(vs))
-		}
-		f, err := convertToFloat(vs[0])
-		if err != nil {
+		var a float64
+		if err := ScanArgs(vs, &a); err != nil {
 			return 0, err
 		}
-		return math.Sqrt(f), nil
+		return math.Sqrt(a), nil
+	})
+	fs.AddFloatFunc("min", func(vs []interface{}) (float64, error) {
+		var a1, a2 float64
+		if err := ScanArgs(vs, &a1, &a2); err != nil {
+			return 0, err
+		}
+		return math.Min(a1, a2), nil
 	})
 	return fs
 }
@@ -47,6 +49,11 @@ func TestFloatExpr(t *testing.T) {
 		expect    float64
 		exclusive bool
 	}{
+		{
+			in:        "min((2+1)*4,5)",
+			failParse: false,
+			expect:    5,
+		},
 		{
 			in:        "(2+1)*4",
 			failParse: false,
