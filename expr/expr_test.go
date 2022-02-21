@@ -50,9 +50,9 @@ func TestFloatExpr(t *testing.T) {
 		exclusive bool
 	}{
 		{
-			in:        "min((2+1)*4,5)",
+			in:        "min(  (2+ 1) *4, 5.67)",
 			failParse: false,
-			expect:    5,
+			expect:    5.67,
 		},
 		{
 			in:        "(2+1)*4",

@@ -116,6 +116,7 @@ func (p *Parser) Parse() (*Stack, error) {
 				return nil, errors.Errorf("no closing brace found for open brace at %d", p.pos)
 			}
 			bexpr := p.expression[p.pos+1 : p.pos+1+ic]
+			curr = strings.TrimSpace(curr)
 			if curr != "" {
 				// curr should be a function name
 				sl := splitArgs(bexpr)
