@@ -7,15 +7,15 @@ type Number interface {
 }
 
 func MakeNumberEvaler[T Number](v T) NumberEvaler[T] {
-	return NumberEvaler[T]{v: v}
+	return NumberEvaler[T]{V: v}
 }
 
 type NumberEvaler[T Number] struct {
-	v T
+	V T
 }
 
 func (e NumberEvaler[T]) Eval(lu Lookuper, funcs *Funcs) (interface{}, error) {
-	return T(e.v), nil
+	return T(e.V), nil
 }
 
 func (e NumberEvaler[T]) Push(op Op, ev Evaler) Evaler {

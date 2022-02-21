@@ -1,0 +1,39 @@
+{
+  "Op": 1,
+  "Evalers": [
+    {
+      "Op": 0,
+      "Evalers": [
+        {
+          "Op": 1,
+          "Evalers": [
+            {
+              "Op": 0,
+              "Evalers": [
+                {
+                  "V": 1
+                },
+                {
+                  "V": 1
+                }
+              ],
+              "Encaps": true
+            },
+            {
+              "V": 4
+            }
+          ],
+          "Encaps": false
+        },
+        {
+          "V": 2
+        }
+      ],
+      "Encaps": true
+    },
+    {
+      "V": 3
+    }
+  ],
+  "Encaps": true
+}

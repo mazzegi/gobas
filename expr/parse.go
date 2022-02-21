@@ -43,17 +43,25 @@ func (p *Parser) Parse() (*Stack, error) {
 			lastOp = 0
 		}()
 		if stack == nil {
-			switch lastOp {
-			case minus:
-				// if !ev.CanEvalFloat(vars, p.funcs) {
-				// 	return errors.Errorf("cannot eval float")
-				// }
+			if evStack, ok := ev.(*Stack); ok {
+				stack = evStack
+			} else {
 				stack = NewStack(OpPlus, ev)
-				return nil
-			case times, div, exp:
-				return errors.Errorf("invalid operator at beginning of expr")
 			}
-			stack = NewStack(OpPlus, ev)
+			//TODO: Handle minus as first op
+
+			// switch lastOp {
+			// case minus:
+			// 	// if !ev.CanEvalFloat(vars, p.funcs) {
+			// 	// 	return errors.Errorf("cannot eval float")
+			// 	// }
+			// 	//TODO: Handle minus
+			// 	stack = NewStack(OpPlus, ev)
+			// 	return nil
+			// case times, div, exp:
+			// 	return errors.Errorf("invalid operator at beginning of expr")
+			// }
+			// stack = NewStack(OpPlus, ev)
 			return nil
 		}
 		if lastOp == 0 {
@@ -79,6 +87,7 @@ func (p *Parser) Parse() (*Stack, error) {
 	}
 
 	pushCurr := func() error {
+		curr = strings.TrimSpace(curr)
 		if curr == "" {
 			return nil
 		}
@@ -127,6 +136,7 @@ func (p *Parser) Parse() (*Stack, error) {
 				if err != nil {
 					return nil, err
 				}
+				vp.Encapsulate()
 				push(vp)
 			}
 			p.pos = p.pos + 1 + ic + 1
