@@ -7,6 +7,7 @@ import (
 )
 
 var typeOfFloat64 = reflect.TypeOf(float64(0))
+var typeOfString = reflect.TypeOf(string(""))
 
 func convertToFloat(v interface{}) (float64, error) {
 	rv := reflect.ValueOf(v)
@@ -19,4 +20,12 @@ func convertToFloat(v interface{}) (float64, error) {
 func canConvertToFloat(v interface{}) bool {
 	rv := reflect.ValueOf(v)
 	return rv.CanConvert(typeOfFloat64)
+}
+
+func convertToString(v interface{}) (string, error) {
+	rv := reflect.ValueOf(v)
+	if !rv.CanConvert(typeOfString) {
+		return "", errors.Errorf("cannot convert value of type %T to type %s", v, typeOfString.String())
+	}
+	return rv.Convert(typeOfString).Interface().(string), nil
 }

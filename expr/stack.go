@@ -11,12 +11,19 @@ type Lookuper interface {
 	CanEvalFloat(name string) bool
 }
 
-type Op int
+type Op string
 
 const (
-	OpPlus Op = iota
-	OpTimes
-	OpExp
+	OpPlus  Op = "PLUS"
+	OpTimes Op = "TIMES"
+	OpExp   Op = "EXP"
+	OpLs    Op = "LS"
+	OpGt    Op = "GT"
+	OpEq    Op = "EQ"
+	OpLsEq  Op = "LSEQ"
+	OpGtEq  Op = "GTEQ"
+	OpAND   Op = "AND"
+	OpOR    Op = "OR"
 )
 
 func (op Op) String() string {
@@ -25,8 +32,41 @@ func (op Op) String() string {
 		return "+"
 	case OpTimes:
 		return "*"
-	default:
+	case OpExp:
 		return "^"
+	case OpLs:
+		return "<"
+	case OpGt:
+		return ">"
+	case OpEq:
+		return "="
+	case OpLsEq:
+		return "<="
+	case OpGtEq:
+		return ">="
+	case OpAND:
+		return "AND"
+	case OpOR:
+		return "OR"
+	default:
+		return ""
+	}
+}
+
+func (op Op) Rank() int {
+	switch op {
+	case OpPlus:
+		return 1
+	case OpTimes:
+		return 2
+	case OpExp:
+		return 3
+	case OpAND, OpOR:
+		return 4
+	case OpLs, OpGt, OpEq, OpLsEq, OpGtEq:
+		return 5
+	default:
+		return 0
 	}
 }
 
@@ -55,9 +95,9 @@ func (s *Stack) Encapsulate() {
 }
 
 func (s *Stack) Push(op Op, ev Evaler) Evaler {
-	if op == s.Op {
+	if op.Rank() == s.Op.Rank() {
 		s.Evalers = append(s.Evalers, ev)
-	} else if op > s.Op {
+	} else if op.Rank() > s.Op.Rank() {
 		if s.Encaps {
 			//copy this stack and append new evaler
 			sub := &Stack{
@@ -73,7 +113,7 @@ func (s *Stack) Push(op Op, ev Evaler) Evaler {
 			last = last.Push(op, ev)
 			s.Evalers[len(s.Evalers)-1] = last
 		}
-	} else if op < s.Op {
+	} else { //if op < s.Op
 		relts := s.Evalers
 		rop := s.Op
 		s.Op = op
@@ -129,6 +169,49 @@ func (s *Stack) Eval(lu Lookuper, funcs *Funcs) (interface{}, error) {
 			v *= nv
 		case OpExp:
 			v = math.Pow(v, nv)
+
+		case OpLs:
+			if v < nv {
+				v = 1
+			} else {
+				v = 0
+			}
+		case OpGt:
+			if v > nv {
+				v = 1
+			} else {
+				v = 0
+			}
+		case OpEq:
+			if v == nv {
+				v = 1
+			} else {
+				v = 0
+			}
+		case OpLsEq:
+			if v <= nv {
+				v = 1
+			} else {
+				v = 0
+			}
+		case OpGtEq:
+			if v >= nv {
+				v = 1
+			} else {
+				v = 0
+			}
+		case OpAND:
+			if v > 0 && nv > 0 {
+				v = 1
+			} else {
+				v = 0
+			}
+		case OpOR:
+			if v > 0 || nv > 0 {
+				v = 1
+			} else {
+				v = 0
+			}
 		}
 	}
 	return v, nil

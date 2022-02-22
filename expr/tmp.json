@@ -1,39 +1,30 @@
 {
-  "Op": 1,
+  "Op": "OR",
   "Evalers": [
     {
-      "Op": 0,
+      "Op": "GT",
       "Evalers": [
         {
-          "Op": 1,
-          "Evalers": [
-            {
-              "Op": 0,
-              "Evalers": [
-                {
-                  "V": 1
-                },
-                {
-                  "V": 1
-                }
-              ],
-              "Encaps": true
-            },
-            {
-              "V": 4
-            }
-          ],
-          "Encaps": false
+          "V": 13
         },
         {
-          "V": 2
+          "V": 17
         }
       ],
-      "Encaps": true
+      "Encaps": false
     },
     {
-      "V": 3
+      "Op": "LSEQ",
+      "Evalers": [
+        {
+          "V": 432
+        },
+        {
+          "V": 399
+        }
+      ],
+      "Encaps": false
     }
   ],
-  "Encaps": true
+  "Encaps": false
 }

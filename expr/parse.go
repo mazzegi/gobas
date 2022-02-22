@@ -22,25 +22,60 @@ type Parser struct {
 }
 
 const (
-	plus   byte = '+'
-	minus  byte = '-'
-	times  byte = '*'
-	div    byte = '/'
-	exp    byte = '^'
-	bopen  byte = '('
-	bclose byte = ')'
+	plus   = "+"
+	minus  = "-"
+	times  = "*"
+	div    = "/"
+	exp    = "^"
+	bopen  = "("
+	bclose = ")"
+	ls     = "<"
+	gt     = ">"
+	eq     = "="
+	lseq   = "<="
+	gteq   = ">="
+	and    = "AND "
+	or     = "OR "
 )
+
+var ops = []string{
+	lseq,
+	gteq,
+	and,
+	or,
+
+	plus,
+	minus,
+	times,
+	div,
+	exp,
+	bopen,
+	bclose,
+	ls,
+	gt,
+	eq,
+}
+
+func isOneOf(s string, sl []string) bool {
+	for _, cs := range sl {
+		if s == cs {
+			return true
+		}
+	}
+	return false
+}
 
 func (p *Parser) Parse() (*Stack, error) {
 	var curr string
-	var lastOp byte
+	//var lastOp byte
+	var lastOp string
 
 	//vars := NewVars()
 	var stack *Stack
 	push := func(ev Evaler) error {
 		defer func() {
 			curr = ""
-			lastOp = 0
+			lastOp = ""
 		}()
 		if stack == nil {
 			if evStack, ok := ev.(*Stack); ok {
@@ -64,7 +99,7 @@ func (p *Parser) Parse() (*Stack, error) {
 			// stack = NewStack(OpPlus, ev)
 			return nil
 		}
-		if lastOp == 0 {
+		if lastOp == "" {
 			return errors.Errorf("missing operator")
 		}
 		// if !ev.CanEvalFloat(vars, p.funcs) {
@@ -82,8 +117,31 @@ func (p *Parser) Parse() (*Stack, error) {
 			stack.Push(OpTimes, MakeFloatFuncEvaler(ev, func(f float64) float64 { return -1.0 / f }))
 		case exp:
 			stack.Push(OpExp, ev)
+		case ls:
+			stack.Push(OpLs, ev)
+		case gt:
+			stack.Push(OpGt, ev)
+		case eq:
+			stack.Push(OpEq, ev)
+		case lseq:
+			stack.Push(OpLsEq, ev)
+		case gteq:
+			stack.Push(OpGtEq, ev)
+		case and:
+			stack.Push(OpAND, ev)
+		case or:
+			stack.Push(OpOR, ev)
 		}
 		return nil
+	}
+
+	peekOp := func() (string, bool) {
+		for _, op := range ops {
+			if strings.HasPrefix(p.expression[p.pos:], op) {
+				return op, true
+			}
+		}
+		return "", false
 	}
 
 	pushCurr := func() error {
@@ -109,8 +167,9 @@ func (p *Parser) Parse() (*Stack, error) {
 	//fmt.Printf("eval: %q\n", e.expr)
 	for p.pos < len(p.expression) {
 		r := p.expression[p.pos]
-		switch r {
-		case bopen:
+		//switch r {
+		switch {
+		case string(r) == bopen:
 			ic, ok := findClosingBraceIdx(p.expression[p.pos+1:])
 			if !ok {
 				return nil, errors.Errorf("no closing brace found for open brace at %d", p.pos)
@@ -141,18 +200,27 @@ func (p *Parser) Parse() (*Stack, error) {
 				push(vp)
 			}
 			p.pos = p.pos + 1 + ic + 1
-		case bclose:
+		case string(r) == bclose:
 			return nil, errors.Errorf("unexpected closing brace at %d", p.pos)
-		case plus, minus, times, div, exp:
-			err := pushCurr()
-			if err != nil {
-				return nil, err
-			}
-			lastOp = r
-			p.pos++
+		// case isOneOf(string(r), []string{plus, minus, times, div, exp}):
+		// 	err := pushCurr()
+		// 	if err != nil {
+		// 		return nil, err
+		// 	}
+		// 	lastOp = string(r)
+		// 	p.pos++
 		default:
-			curr += string(r)
-			p.pos++
+			if op, ok := peekOp(); ok {
+				err := pushCurr()
+				if err != nil {
+					return nil, err
+				}
+				lastOp = op
+				p.pos += len(op)
+			} else {
+				curr += string(r)
+				p.pos++
+			}
 		}
 	}
 	err := pushCurr()
@@ -169,7 +237,7 @@ func (p *Parser) Parse() (*Stack, error) {
 func findClosingBraceIdx(s string) (int, bool) {
 	nopen := 0
 	for i := 0; i < len(s); i++ {
-		switch s[i] {
+		switch string(s[i]) {
 		case bopen:
 			nopen++
 		case bclose:
@@ -187,12 +255,12 @@ func splitArgs(expr string) []string {
 	curr := ""
 	nopen := 0
 	for i := 0; i < len(expr); i++ {
-		switch expr[i] {
+		switch string(expr[i]) {
 		case bopen:
 			nopen++
 		case bclose:
 			nopen--
-		case ',':
+		case ",":
 			if nopen == 0 {
 				args = append(args, curr)
 				curr = ""
