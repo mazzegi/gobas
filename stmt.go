@@ -97,7 +97,9 @@ type ONGOTO struct {
 }
 
 type PRINT struct {
-	Exprs []Expr
+	//Exprs []Expr
+	Raw   string
+	Items []printItem
 }
 
 type READ struct {

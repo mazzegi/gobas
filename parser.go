@@ -85,7 +85,7 @@ func (p *Parser) init() {
 	p.lexer.MustAdd(KeyNEXT_EMPTY, "NEXT")
 	p.lexer.MustAdd(KeyON_GOSUB, "ON {expr:string} GOSUB {lines:[]int}")
 	p.lexer.MustAdd(KeyON_GOTO, "ON {expr:string} GOTO {lines:[]int}")
-	p.lexer.MustAdd(KeyPRINT, "PRINT{exprs:[]string?sep=;}")
+	p.lexer.MustAdd(KeyPRINT, "PRINT{raw:string}")
 	p.lexer.MustAdd(KeyPRINT_EMPTY, "PRINT")
 	p.lexer.MustAdd(KeyREAD, "READ {expr:string}")
 	p.lexer.MustAdd(KeyREM, "REM{expr:string}")
@@ -216,9 +216,12 @@ func (p *Parser) mustParseStmt(stmtRaw string) Stmt {
 			Lines: lex.MustParam[[]int](ps, "lines"),
 		}
 	case KeyPRINT:
-		return PRINT{
-			Exprs: mustParseExpressions(lex.MustParam[[]string](ps, "exprs")),
-		}
+		return mustParsePrint(lex.MustParam[string](ps, "raw"))
+
+		// return PRINT{
+		// 	//Exprs: mustParseExpressions(lex.MustParam[[]string](ps, "exprs")),
+		// 	Raw: lex.MustParam[string](ps, "raw"),
+		// }
 	case KeyPRINT_EMPTY:
 		return PRINT{}
 	case KeyREAD:

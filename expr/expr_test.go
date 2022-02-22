@@ -131,7 +131,7 @@ func TestFloatExpr(t *testing.T) {
 				return
 			}
 
-			s, err := NewParser(test.in, funcs).Parse()
+			s, err := NewParser(test.in).Parse()
 
 			if err != nil {
 				if !test.failParse {
@@ -173,6 +173,11 @@ func TestStringExpr(t *testing.T) {
 		exclusive bool
 	}{
 		{
+			in:        `"THE DEALER (COMPUTER) DEALS TWO CARDS FACE UP"`,
+			failParse: false,
+			expect:    "THE DEALER (COMPUTER) DEALS TWO CARDS FACE UP",
+		},
+		{
 			in:        `"hammer"`,
 			failParse: false,
 			expect:    "hammer",
@@ -205,7 +210,7 @@ func TestStringExpr(t *testing.T) {
 				return
 			}
 
-			s, err := NewParser(test.in, funcs).Parse()
+			s, err := NewParser(test.in).Parse()
 
 			if err != nil {
 				if !test.failParse {
@@ -300,7 +305,7 @@ func TestBoolExpr(t *testing.T) {
 				t.Log("Skip")
 				return
 			}
-			s, err := NewParser(test.in, funcs).Parse()
+			s, err := NewParser(test.in).Parse()
 			if err != nil {
 				if !test.failParse {
 					t.Fatalf("expect NO parse error, but got %v", err)

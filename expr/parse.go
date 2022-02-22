@@ -7,18 +7,25 @@ import (
 	"github.com/pkg/errors"
 )
 
-func NewParser(expr string, funcs *Funcs) *Parser {
+// func NewParser(expr string, funcs *Funcs) *Parser {
+// 	return &Parser{
+// 		expression: expr,
+// 		pos:        0,
+// 		funcs:      funcs,
+// 	}
+// }
+
+func NewParser(expr string) *Parser {
 	return &Parser{
 		expression: expr,
 		pos:        0,
-		funcs:      funcs,
 	}
 }
 
 type Parser struct {
 	expression string
 	pos        int
-	funcs      *Funcs
+	//funcs      *Funcs
 }
 
 const (
@@ -164,12 +171,20 @@ func (p *Parser) Parse() (*Stack, error) {
 		return push(ev)
 	}
 
-	//fmt.Printf("eval: %q\n", e.expr)
+	var inQuotes bool
 	for p.pos < len(p.expression) {
 		r := p.expression[p.pos]
 		//switch r {
 		switch {
-		case string(r) == bopen:
+		case r == '"':
+			if !inQuotes {
+				inQuotes = true
+			} else {
+				inQuotes = false
+			}
+			curr += string(r)
+			p.pos++
+		case !inQuotes && string(r) == bopen:
 			ic, ok := findClosingBraceIdx(p.expression[p.pos+1:])
 			if !ok {
 				return nil, errors.Errorf("no closing brace found for open brace at %d", p.pos)
@@ -181,7 +196,7 @@ func (p *Parser) Parse() (*Stack, error) {
 				sl := splitArgs(bexpr)
 				args := []Evaler{}
 				for _, s := range sl {
-					vp, err := NewParser(s, p.funcs).Parse()
+					vp, err := NewParser(s).Parse()
 					if err != nil {
 						return nil, err
 					}
@@ -192,7 +207,7 @@ func (p *Parser) Parse() (*Stack, error) {
 					Args: args,
 				})
 			} else {
-				vp, err := NewParser(bexpr, p.funcs).Parse()
+				vp, err := NewParser(bexpr).Parse()
 				if err != nil {
 					return nil, err
 				}
@@ -200,7 +215,7 @@ func (p *Parser) Parse() (*Stack, error) {
 				push(vp)
 			}
 			p.pos = p.pos + 1 + ic + 1
-		case string(r) == bclose:
+		case !inQuotes && string(r) == bclose:
 			return nil, errors.Errorf("unexpected closing brace at %d", p.pos)
 		// case isOneOf(string(r), []string{plus, minus, times, div, exp}):
 		// 	err := pushCurr()
@@ -209,6 +224,9 @@ func (p *Parser) Parse() (*Stack, error) {
 		// 	}
 		// 	lastOp = string(r)
 		// 	p.pos++
+		case inQuotes:
+			curr += string(r)
+			p.pos++
 		default:
 			if op, ok := peekOp(); ok {
 				err := pushCurr()

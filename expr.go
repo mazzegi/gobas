@@ -1,9 +1,24 @@
 package gobas
 
-import "github.com/pkg/errors"
+import (
+	"github.com/mazzegi/gobas/expr"
+	"github.com/pkg/errors"
+)
 
 func parseExpression(s string) (Expr, error) {
-	ex := Expr{Raw: s}
+	if s == "" {
+		return Expr{}, nil
+	}
+
+	stack, err := expr.NewParser(s).Parse()
+	if err != nil {
+		return Expr{}, err
+	}
+
+	ex := Expr{
+		Raw:   s,
+		Stack: stack,
+	}
 	return ex, nil
 }
 
@@ -36,5 +51,6 @@ func mustParseExpressions(sl []string) []Expr {
 }
 
 type Expr struct {
-	Raw string
+	Raw   string
+	Stack *expr.Stack
 }
