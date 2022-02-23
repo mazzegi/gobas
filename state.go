@@ -51,11 +51,38 @@ func (s *State) boolVal(v interface{}) bool {
 	return f > 0
 }
 
+type forState struct {
+	lineIdx int
+	stmtIdx int
+	varName string
+	toValue float64
+	step    float64
+}
+
 func (s *State) Run() {
 	vars := expr.NewVars()
 	funcs := BuiltinFuncs()
+	arrays := map[string]any{}
+	forStates := []forState{}
+
+	findForState := func(varName string) (forState, bool) {
+		if len(forStates) == 0 {
+			return forState{}, false
+		}
+		if varName == "" {
+			return forStates[len(forStates)-1], true
+		}
+
+		for i := len(forStates) - 1; i >= 0; i-- {
+			if forStates[i].varName == varName {
+				return forStates[i], true
+			}
+		}
+		return forState{}, false
+	}
 
 	var gosubFromIdx int = -1
+	var firstStmtIdx int = 0
 mainloop:
 	for {
 		if s.currIdx >= len(s.lines) {
@@ -64,18 +91,107 @@ mainloop:
 		}
 
 		line := s.lines[s.currIdx]
-		for _, stmt := range line.stmts {
+		for stmtIdx := firstStmtIdx; stmtIdx < len(line.stmts); stmtIdx++ {
+			stmt := line.stmts[stmtIdx]
 			switch stmt := stmt.(type) {
 			case DATA:
 				//TODO
 			case DEF:
 				//TODO
 			case DIM:
-				//TODO
+				for _, ad := range stmt.Arrays {
+					var dims []int
+					for _, dim := range ad.Dimensions {
+						f, err := dim.Stack.EvalFloat(vars, funcs)
+						if err != nil {
+							s.Errorf("line %d: DIM: eval-float: %v", line.num, err)
+							return
+						}
+						dims = append(dims, int(f))
+					}
+
+					if IsString(ad.Var) {
+						a := NewArray[string](dims)
+						funcs.AddFunc(ad.Var, func(vs []interface{}) (interface{}, error) {
+							cs := make([]int, len(vs))
+							args := make([]interface{}, len(vs))
+							for i := 0; i < len(vs); i++ {
+								args[i] = &(cs[i])
+							}
+							if err := expr.ScanArgs(vs, args...); err != nil {
+								return 0, err
+							}
+							return a.Get(cs)
+						})
+						arrays[ad.Var] = a
+					} else {
+						a := NewArray[float64](dims)
+						funcs.AddFloatFunc(ad.Var, func(vs []interface{}) (float64, error) {
+							cs := make([]int, len(vs))
+							args := make([]interface{}, len(vs))
+							for i := 0; i < len(vs); i++ {
+								args[i] = &(cs[i])
+							}
+							if err := expr.ScanArgs(vs, args...); err != nil {
+								return 0, err
+							}
+							return a.Get(cs)
+						})
+						arrays[ad.Var] = a
+					}
+				}
 			case END:
 				s.Outln("END")
 				return
 			case FOR:
+				iv, err := stmt.Initial.Stack.EvalFloat(vars, funcs)
+				if err != nil {
+					s.Errorf("line %d: FOR: eval initial: %v", line.num, err)
+					return
+				}
+				to, err := stmt.To.Stack.EvalFloat(vars, funcs)
+				if err != nil {
+					s.Errorf("line %d: FOR: eval to: %v", line.num, err)
+					return
+				}
+				step, err := stmt.Step.Stack.EvalFloat(vars, funcs)
+				if err != nil {
+					s.Errorf("line %d: FOR: eval step: %v", line.num, err)
+					return
+				}
+
+				vars.Add(stmt.Var, iv)
+				forStates = append(forStates, forState{
+					lineIdx: s.currIdx,
+					stmtIdx: stmtIdx,
+					varName: stmt.Var,
+					toValue: to,
+					step:    step,
+				})
+
+			case NEXT:
+				fs, ok := findForState(stmt.Var)
+				if !ok {
+					s.Errorf("line %d: NEXT: found no corresponding for-state", line.num)
+					return
+				}
+				v, err := vars.LookupVar(fs.varName)
+				if err != nil {
+					s.Errorf("line %d: NEXT: found no var %q", line.num, fs.varName)
+				}
+				f, err := expr.ConvertToFloat(v)
+				if err != nil {
+					s.Errorf("line %d: NEXT: eval var value %q: %v", line.num, fs.varName, err)
+				}
+				f++
+				if f <= fs.toValue {
+					vars.Add(fs.varName, f)
+					s.currIdx = fs.lineIdx
+					firstStmtIdx = fs.stmtIdx
+					continue mainloop
+				}
+				//just go on
+
 			case GOSUB:
 				nextIdx := s.findLineIdx(stmt.Line)
 				if nextIdx < 0 {
@@ -161,7 +277,6 @@ mainloop:
 					return
 				}
 				vars.Add(stmt.Var, val)
-			case NEXT:
 			case ONGOSUB:
 			case ONGOTO:
 			case PRINT:
@@ -206,8 +321,53 @@ mainloop:
 					return
 				}
 				vars.Add(stmt.Var, val)
+			case ASSIGN_ARRAY:
+				va, ok := arrays[stmt.Array.Var]
+				if !ok {
+					s.Errorf("line %d: no such array %q", line.num, stmt.Array.Var)
+					return
+				}
+				val, err := stmt.Expr.Stack.Eval(vars, funcs)
+				if err != nil {
+					s.Errorf("line %d: eval %q", line.num, stmt.Expr.Raw)
+					return
+				}
+				var cs []int
+				for _, dim := range stmt.Array.Dimensions {
+					f, err := dim.Stack.EvalFloat(vars, funcs)
+					if err != nil {
+						s.Errorf("line %d: DIM: eval-float: %v", line.num, err)
+						return
+					}
+					cs = append(cs, int(f))
+				}
+				switch a := va.(type) {
+				case Array[string]:
+					str, err := expr.ConvertToString(val)
+					if err != nil {
+						s.Errorf("line %d: cannot convert %T to string", line.num, val)
+						return
+					}
+					err = a.Set(cs, str)
+					if err != nil {
+						s.Errorf("line %d: set array %v: %v", line.num, cs, err)
+						return
+					}
+				case Array[float64]:
+					f, err := expr.ConvertToFloat(val)
+					if err != nil {
+						s.Errorf("line %d: cannot convert %T to string", line.num, val)
+						return
+					}
+					err = a.Set(cs, f)
+					if err != nil {
+						s.Errorf("line %d: set array %v: %v", line.num, cs, err)
+						return
+					}
+				}
 			}
 		}
 		s.currIdx++
+		firstStmtIdx = 0
 	}
 }

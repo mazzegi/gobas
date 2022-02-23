@@ -223,7 +223,7 @@ func TestStringExpr(t *testing.T) {
 						t.Fatalf("expect NO eval error, but got %v", err)
 					}
 				} else {
-					s, err := convertToString(v)
+					s, err := ConvertToString(v)
 					if err != nil {
 						t.Fatalf("expect NO convert-string error, but got %v", err)
 					}

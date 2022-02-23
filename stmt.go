@@ -10,9 +10,9 @@ const StmtSep = ':'
 
 type Stmt interface{}
 
-type Array struct {
+type ArrayDef struct {
 	Var        string
-	Dimensions []int
+	Dimensions []Expr
 }
 
 type DATA struct {
@@ -25,7 +25,7 @@ type DEF struct {
 }
 
 type DIM struct {
-	Arrays []Array
+	Arrays []ArrayDef
 }
 
 type END struct{}
@@ -81,6 +81,11 @@ type LET struct {
 type ASSIGN struct {
 	Var  string
 	Expr Expr
+}
+
+type ASSIGN_ARRAY struct {
+	Array ArrayDef
+	Expr  Expr
 }
 
 type NEXT struct {

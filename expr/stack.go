@@ -138,6 +138,14 @@ func (s *Stack) CanEvalFloat(lu Lookuper, funcs *Funcs) bool {
 	return s.Evalers[0].CanEvalFloat(lu, funcs)
 }
 
+func (s *Stack) EvalFloat(lu Lookuper, funcs *Funcs) (float64, error) {
+	v, err := s.Eval(lu, funcs)
+	if err != nil {
+		return 0, err
+	}
+	return ConvertToFloat(v)
+}
+
 func (s *Stack) Eval(lu Lookuper, funcs *Funcs) (interface{}, error) {
 	if len(s.Evalers) == 0 {
 		return nil, errors.Errorf("no elements on the stack")

@@ -232,9 +232,17 @@ func (p *Parser) mustParseStmt(stmtRaw string) Stmt {
 	case KeySTOP:
 		return STOP{}
 	case KeyASSIGN:
-		return ASSIGN{
-			Var:  lex.MustParam[string](ps, "var"),
-			Expr: mustParseExpression(lex.MustParam[string](ps, "expr")),
+		varName := lex.MustParam[string](ps, "var")
+		if isArray(varName) {
+			return ASSIGN_ARRAY{
+				Array: mustParseArray(varName),
+				Expr:  mustParseExpression(lex.MustParam[string](ps, "expr")),
+			}
+		} else {
+			return ASSIGN{
+				Var:  lex.MustParam[string](ps, "var"),
+				Expr: mustParseExpression(lex.MustParam[string](ps, "expr")),
+			}
 		}
 	case KeyREM:
 		return REM{
@@ -247,7 +255,49 @@ func (p *Parser) mustParseStmt(stmtRaw string) Stmt {
 	}
 }
 
-func mustParseArrays(sl []string) []Array {
-	var as []Array
+func mustParseArrays(sl []string) []ArrayDef {
+	var as []ArrayDef
+
+	p, err := lex.ParsePattern("{var:string}({dimexprs:[]string?sep=,})")
+	if err != nil {
+		panic(err)
+	}
+	for _, s := range sl {
+		ps, err := p.Eval(s)
+		if err != nil {
+			panic(err)
+		}
+		exprs := mustParseExpressions(lex.MustParam[[]string](ps, "dimexprs"))
+		as = append(as, ArrayDef{
+			Var:        lex.MustParam[string](ps, "var"),
+			Dimensions: exprs,
+		})
+	}
+
 	return as
+}
+
+func mustParseArray(s string) ArrayDef {
+	p, err := lex.ParsePattern("{var:string}({dimexprs:[]string?sep=,})")
+	if err != nil {
+		panic(err)
+	}
+	ps, err := p.Eval(s)
+	if err != nil {
+		panic(err)
+	}
+	exprs := mustParseExpressions(lex.MustParam[[]string](ps, "dimexprs"))
+	return ArrayDef{
+		Var:        lex.MustParam[string](ps, "var"),
+		Dimensions: exprs,
+	}
+}
+
+func isArray(s string) bool {
+	p, err := lex.ParsePattern("{var:string}({dimexprs:[]string?sep=,})")
+	if err != nil {
+		panic(err)
+	}
+	_, err = p.Eval(s)
+	return err == nil
 }

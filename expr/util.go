@@ -23,7 +23,7 @@ func canConvertToFloat(v interface{}) bool {
 	return rv.CanConvert(typeOfFloat64)
 }
 
-func convertToString(v interface{}) (string, error) {
+func ConvertToString(v interface{}) (string, error) {
 	rv := reflect.ValueOf(v)
 	if !rv.CanConvert(typeOfString) {
 		return "", errors.Errorf("cannot convert value of type %T to type %s", v, typeOfString.String())
@@ -93,11 +93,11 @@ func floatOp(v1, v2 interface{}, op func(f1, f2 float64) float64) (interface{}, 
 }
 
 func stringOp(v1, v2 interface{}, op func(f1, f2 string) float64) (interface{}, error) {
-	f1, err := convertToString(v1)
+	f1, err := ConvertToString(v1)
 	if err != nil {
 		return nil, err
 	}
-	f2, err := convertToString(v2)
+	f2, err := ConvertToString(v2)
 	if err != nil {
 		return nil, err
 	}
