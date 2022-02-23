@@ -64,7 +64,7 @@ func BuiltinFuncs() *expr.Funcs {
 		if err := expr.ScanArgs(vs, &a); err != nil {
 			return 0, err
 		}
-		return math.Round(a), nil
+		return math.Floor(a), nil
 	})
 	fs.AddFunc("LEFT$", func(vs []interface{}) (interface{}, error) {
 		var s string

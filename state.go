@@ -2,6 +2,7 @@ package gobas
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 
 	"github.com/mazzegi/gobas/expr"
@@ -187,7 +188,7 @@ mainloop:
 				if f <= fs.toValue {
 					vars.Add(fs.varName, f)
 					s.currIdx = fs.lineIdx
-					firstStmtIdx = fs.stmtIdx
+					firstStmtIdx = fs.stmtIdx + 1
 					continue mainloop
 				}
 				//just go on
@@ -212,7 +213,7 @@ mainloop:
 			case IFLN:
 				val, err := stmt.Expr.Stack.Eval(vars, funcs)
 				if err != nil {
-					s.Errorf("line %d: eval %q", line.num, stmt.Expr.Raw)
+					s.Errorf("line %d: IF eval %q: %v", line.num, stmt.Expr.Raw, err)
 					return
 				}
 				if s.boolVal(val) {
@@ -273,12 +274,49 @@ mainloop:
 			case LET:
 				val, err := stmt.Expr.Stack.Eval(vars, funcs)
 				if err != nil {
-					s.Errorf("line %d: eval %q", line.num, stmt.Expr.Raw)
+					s.Errorf("line %d: LET eval %q: %v", line.num, stmt.Expr.Raw, err)
 					return
 				}
 				vars.Add(stmt.Var, val)
 			case ONGOSUB:
+				val, err := stmt.Expr.Stack.EvalFloat(vars, funcs)
+				if err != nil {
+					s.Errorf("line %d: ONGOSUB eval-float %q: %v", line.num, stmt.Expr.Raw, err)
+					return
+				}
+				ix := int(val) - 1
+				if ix < 0 || ix >= len(stmt.Lines) {
+					s.Errorf("line %d: ONGOSUB invalid index %d", line.num, ix+1)
+					return
+				}
+				ln := stmt.Lines[ix]
+				nextIdx := s.findLineIdx(ln)
+				if nextIdx < 0 {
+					s.Errorf("line %d: ONGOSUB: no such line %d", line.num, ln)
+					return
+				}
+				gosubFromIdx = s.currIdx
+				s.currIdx = nextIdx
+				continue mainloop
 			case ONGOTO:
+				val, err := stmt.Expr.Stack.EvalFloat(vars, funcs)
+				if err != nil {
+					s.Errorf("line %d: ONGOTO eval-float %q: %v", line.num, stmt.Expr.Raw, err)
+					return
+				}
+				ix := int(math.Round(val)) - 1
+				if ix < 0 || ix >= len(stmt.Lines) {
+					s.Errorf("line %d: ONGOTO invalid index %d", line.num, ix+1)
+					return
+				}
+				ln := stmt.Lines[ix]
+				nextIdx := s.findLineIdx(ln)
+				if nextIdx < 0 {
+					s.Errorf("line %d: ONGOTO: no such line %d", line.num, ln)
+					return
+				}
+				s.currIdx = nextIdx
+				continue mainloop
 			case PRINT:
 				lastSemicolon := false
 				for _, pi := range stmt.Items {

@@ -36,9 +36,11 @@ func (a *Array[T]) idx(cs []int) (int, error) {
 	}
 	ix := 0
 	for i, c := range cs {
+		//BAS indexes start with 1
+		c = c - 1
 		dim := a.dims[i]
 		if c < 0 || c >= dim {
-			return 0, errors.Errorf("index of dim %d out of bounds. must be >= 0 and < %d", i, dim)
+			return 0, errors.Errorf("index of dim %d (%d) out of bounds. must be >= 1 and <= %d", i, c+1, dim)
 		}
 		ix += c * a.segmentSize(i)
 	}
