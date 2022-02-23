@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/mazzegi/gobas/expr"
+	"github.com/pkg/errors"
 )
 
 type Line struct {
@@ -60,11 +62,47 @@ type forState struct {
 	step    float64
 }
 
+type Data struct {
+	pos  int
+	vars []interface{}
+}
+
+func (d *Data) Add(v interface{}) {
+	d.vars = append(d.vars, v)
+}
+
+func (d *Data) Read() (interface{}, error) {
+	if d.pos >= len(d.vars) {
+		return nil, errors.Errorf("data is empty")
+	}
+	v := d.vars[d.pos]
+	if d.pos < len(d.vars)-1 {
+		d.pos++
+	}
+	return v, nil
+}
+
+func (d *Data) Restore() {
+	d.pos = 0
+}
+
 func (s *State) Run() {
 	vars := expr.NewVars()
 	funcs := BuiltinFuncs()
 	arrays := map[string]any{}
 	forStates := []forState{}
+	data := &Data{}
+
+	for _, line := range s.lines {
+		for _, stmt := range line.stmts {
+			if dataStmt, ok := stmt.(DATA); ok {
+				for _, c := range dataStmt.Consts {
+					c = strings.Trim(c, `"`)
+					data.Add(c)
+				}
+			}
+		}
+	}
 
 	findForState := func(varName string) (forState, bool) {
 		if len(forStates) == 0 {
@@ -84,6 +122,8 @@ func (s *State) Run() {
 
 	var gosubFromIdx int = -1
 	var firstStmtIdx int = 0
+	var extraStmts []Stmt
+
 mainloop:
 	for {
 		if s.currIdx >= len(s.lines) {
@@ -92,11 +132,10 @@ mainloop:
 		}
 
 		line := s.lines[s.currIdx]
+
 		for stmtIdx := firstStmtIdx; stmtIdx < len(line.stmts); stmtIdx++ {
 			stmt := line.stmts[stmtIdx]
 			switch stmt := stmt.(type) {
-			case DATA:
-				//TODO
 			case DEF:
 				//TODO
 			case DIM:
@@ -244,7 +283,25 @@ mainloop:
 				s.currIdx = nextIdx
 				continue mainloop
 			case IFSTMT:
+				val, err := stmt.Expr.Stack.Eval(vars, funcs)
+				if err != nil {
+					s.Errorf("line %d: IF eval %q: %v", line.num, stmt.Expr.Raw, err)
+					return
+				}
+				if s.boolVal(val) {
+					extraStmts = append(extraStmts, stmt.Stmts)
+				}
 			case IFELSESTMT:
+				val, err := stmt.Expr.Stack.Eval(vars, funcs)
+				if err != nil {
+					s.Errorf("line %d: eval %q", line.num, stmt.Expr.Raw)
+					return
+				}
+				if s.boolVal(val) {
+					extraStmts = append(extraStmts, stmt.Stmts)
+				} else {
+					extraStmts = append(extraStmts, stmt.ElseStmts)
+				}
 			case INPUT:
 				s.Outf("%s? ", stmt.Msg)
 			inputouter:
@@ -339,8 +396,61 @@ mainloop:
 					s.Out("\n")
 				}
 			case READ:
+				for _, varName := range stmt.Vars {
+					dv, err := data.Read()
+					if err != nil {
+						s.Errorf("line %d: READ : %v", line.num, err)
+						return
+					}
+					if !isArray(varName) {
+						vars.Add(varName, dv)
+						continue
+					}
+
+					ad := mustParseArray(varName)
+					va, ok := arrays[ad.Var]
+					if !ok {
+						s.Errorf("line %d: READ no such array %q", line.num, ad.Var)
+						return
+					}
+
+					var cs []int
+					for _, dim := range ad.Dimensions {
+						f, err := dim.Stack.EvalFloat(vars, funcs)
+						if err != nil {
+							s.Errorf("line %d: READ: eval-float: %v", line.num, err)
+							return
+						}
+						cs = append(cs, int(f))
+					}
+					switch a := va.(type) {
+					case *Array[string]:
+						str, err := expr.ConvertToString(dv)
+						if err != nil {
+							s.Errorf("line %d: cannot convert %T to string", line.num, dv)
+							return
+						}
+						err = a.Set(cs, str)
+						if err != nil {
+							s.Errorf("line %d: set array %v: %v", line.num, cs, err)
+							return
+						}
+					case *Array[float64]:
+						f, err := expr.ConvertToFloat(dv)
+						if err != nil {
+							s.Errorf("line %d: cannot convert %T to string", line.num, dv)
+							return
+						}
+						err = a.Set(cs, f)
+						if err != nil {
+							s.Errorf("line %d: set array %v: %v", line.num, cs, err)
+							return
+						}
+					}
+				}
 			case REM:
 			case RESTORE:
+				data.Restore()
 			case RETURN:
 				if gosubFromIdx < 0 {
 					s.Errorf("line %d: RETURN without GOSUB", line.num)
@@ -355,7 +465,7 @@ mainloop:
 			case ASSIGN:
 				val, err := stmt.Expr.Stack.Eval(vars, funcs)
 				if err != nil {
-					s.Errorf("line %d: eval %q", line.num, stmt.Expr.Raw)
+					s.Errorf("line %d: eval %q: %v", line.num, stmt.Expr.Raw, err)
 					return
 				}
 				vars.Add(stmt.Var, val)
@@ -380,7 +490,7 @@ mainloop:
 					cs = append(cs, int(f))
 				}
 				switch a := va.(type) {
-				case Array[string]:
+				case *Array[string]:
 					str, err := expr.ConvertToString(val)
 					if err != nil {
 						s.Errorf("line %d: cannot convert %T to string", line.num, val)
@@ -391,7 +501,7 @@ mainloop:
 						s.Errorf("line %d: set array %v: %v", line.num, cs, err)
 						return
 					}
-				case Array[float64]:
+				case *Array[float64]:
 					f, err := expr.ConvertToFloat(val)
 					if err != nil {
 						s.Errorf("line %d: cannot convert %T to string", line.num, val)

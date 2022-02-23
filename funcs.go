@@ -72,6 +72,12 @@ func BuiltinFuncs() *expr.Funcs {
 		if err := expr.ScanArgs(vs, &s, &num); err != nil {
 			return 0, err
 		}
+		if s == "" {
+			return s, nil
+		}
+		if num < 0 {
+			return nil, errors.Errorf("LEFT invalid num value %d. vs = %v", num, vs)
+		}
 		if num >= len(s) {
 			num = len(s) - 1
 		}
@@ -97,6 +103,10 @@ func BuiltinFuncs() *expr.Funcs {
 		if err := expr.ScanArgs(vs, &s, &idx, &num); err != nil {
 			return 0, err
 		}
+		if idx >= len(s) {
+			return "", nil
+		}
+
 		toIdx := idx + num
 		if toIdx >= len(s) {
 			toIdx = len(s) - 1

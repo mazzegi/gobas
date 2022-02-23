@@ -177,7 +177,11 @@ func (s *Stack) Eval(lu Lookuper, funcs *Funcs) (interface{}, error) {
 
 		switch s.Op {
 		case OpPlus:
-			v, err = floatOp(v, nv, func(f1, f2 float64) float64 { return f1 + f2 })
+			if _, ok := v.(string); ok {
+				v, err = stringOp(v, nv, func(f1, f2 string) string { return f1 + f2 })
+			} else {
+				v, err = floatOp(v, nv, func(f1, f2 float64) float64 { return f1 + f2 })
+			}
 		case OpTimes:
 			v, err = floatOp(v, nv, func(f1, f2 float64) float64 { return f1 * f2 })
 		case OpExp:

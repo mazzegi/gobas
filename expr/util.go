@@ -92,7 +92,19 @@ func floatOp(v1, v2 interface{}, op func(f1, f2 float64) float64) (interface{}, 
 	return op(f1, f2), nil
 }
 
-func stringOp(v1, v2 interface{}, op func(f1, f2 string) float64) (interface{}, error) {
+func stringToFloatOp(v1, v2 interface{}, op func(f1, f2 string) float64) (interface{}, error) {
+	f1, err := ConvertToString(v1)
+	if err != nil {
+		return nil, err
+	}
+	f2, err := ConvertToString(v2)
+	if err != nil {
+		return nil, err
+	}
+	return op(f1, f2), nil
+}
+
+func stringOp(v1, v2 interface{}, op func(f1, f2 string) string) (interface{}, error) {
 	f1, err := ConvertToString(v1)
 	if err != nil {
 		return nil, err
@@ -108,7 +120,7 @@ func less(v1, v2 interface{}) (interface{}, error) {
 	if canConvertToFloat(v1) {
 		return floatOp(v1, v2, lessFloat[float64])
 	} else if canConvertToString(v1) {
-		return stringOp(v1, v2, lessFloat[string])
+		return stringToFloatOp(v1, v2, lessFloat[string])
 	}
 	return nil, errors.Errorf("incompatible types %T, %T", v1, v2)
 }
@@ -117,7 +129,7 @@ func greater(v1, v2 interface{}) (interface{}, error) {
 	if canConvertToFloat(v1) {
 		return floatOp(v1, v2, greaterFloat[float64])
 	} else if canConvertToString(v1) {
-		return stringOp(v1, v2, greaterFloat[string])
+		return stringToFloatOp(v1, v2, greaterFloat[string])
 	}
 	return nil, errors.Errorf("incompatible types %T, %T", v1, v2)
 }
@@ -126,7 +138,7 @@ func equal(v1, v2 interface{}) (interface{}, error) {
 	if canConvertToFloat(v1) {
 		return floatOp(v1, v2, equalFloat[float64])
 	} else if canConvertToString(v1) {
-		return stringOp(v1, v2, equalFloat[string])
+		return stringToFloatOp(v1, v2, equalFloat[string])
 	}
 	return nil, errors.Errorf("incompatible types %T, %T", v1, v2)
 }
@@ -135,7 +147,7 @@ func notEqual(v1, v2 interface{}) (interface{}, error) {
 	if canConvertToFloat(v1) {
 		return floatOp(v1, v2, notEqualFloat[float64])
 	} else if canConvertToString(v1) {
-		return stringOp(v1, v2, notEqualFloat[string])
+		return stringToFloatOp(v1, v2, notEqualFloat[string])
 	}
 	return nil, errors.Errorf("incompatible types %T, %T", v1, v2)
 }
@@ -144,7 +156,7 @@ func lessEqual(v1, v2 interface{}) (interface{}, error) {
 	if canConvertToFloat(v1) {
 		return floatOp(v1, v2, lessEqualFloat[float64])
 	} else if canConvertToString(v1) {
-		return stringOp(v1, v2, lessEqualFloat[string])
+		return stringToFloatOp(v1, v2, lessEqualFloat[string])
 	}
 	return nil, errors.Errorf("incompatible types %T, %T", v1, v2)
 }
@@ -153,7 +165,7 @@ func greaterEqual(v1, v2 interface{}) (interface{}, error) {
 	if canConvertToFloat(v1) {
 		return floatOp(v1, v2, greaterEqualFloat[float64])
 	} else if canConvertToString(v1) {
-		return stringOp(v1, v2, greaterEqualFloat[string])
+		return stringToFloatOp(v1, v2, greaterEqualFloat[string])
 	}
 	return nil, errors.Errorf("incompatible types %T, %T", v1, v2)
 }
