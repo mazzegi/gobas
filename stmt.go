@@ -16,8 +16,7 @@ type Array struct {
 }
 
 type DATA struct {
-	//TODO
-	Expr string
+	Consts []string
 }
 
 type DEF struct {
@@ -69,7 +68,9 @@ type IFELSESTMT struct {
 }
 
 type INPUT struct {
-	//TODO
+	Msg       string
+	Semicolon bool
+	Vars      []string
 }
 
 type LET struct {
@@ -97,13 +98,12 @@ type ONGOTO struct {
 }
 
 type PRINT struct {
-	//Exprs []Expr
 	Raw   string
 	Items []printItem
 }
 
 type READ struct {
-	//TODO
+	Vars []string
 }
 
 type REM struct {
@@ -111,7 +111,6 @@ type REM struct {
 }
 
 type RESTORE struct {
-	//TODO
 }
 
 type RETURN struct {

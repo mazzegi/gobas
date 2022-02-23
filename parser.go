@@ -67,7 +67,7 @@ const (
 
 func (p *Parser) init() {
 	p.lexer = lex.NewSet()
-	p.lexer.MustAdd(KeyDATA, "DATA {expr:string}")
+	p.lexer.MustAdd(KeyDATA, "DATA {raw:string}")
 	p.lexer.MustAdd(KeyDEF, "DEF {fnc:string}={expr:string}")
 	p.lexer.MustAdd(KeyDIM, "DIM {arrayexprs:[]string?sep=,}")
 	p.lexer.MustAdd(KeyEND, "END")
@@ -79,7 +79,7 @@ func (p *Parser) init() {
 	p.lexer.MustAdd(KeyIFELSESTMT, "IF {condexpr:string} THEN {stmts:string} ELSE {elsestmts:string}")
 	p.lexer.MustAdd(KeyIFLN, "IF {condexpr:string} THEN {line:int}")
 	p.lexer.MustAdd(KeyIFSTMT, "IF {condexpr:string} THEN {stmts:string}")
-	p.lexer.MustAdd(KeyINPUT, "INPUT{expr:string}")
+	p.lexer.MustAdd(KeyINPUT, "INPUT{raw:string}")
 	p.lexer.MustAdd(KeyLET, "LET {var:string}={expr:string}")
 	p.lexer.MustAdd(KeyNEXT, "NEXT {var:string}")
 	p.lexer.MustAdd(KeyNEXT_EMPTY, "NEXT")
@@ -87,7 +87,7 @@ func (p *Parser) init() {
 	p.lexer.MustAdd(KeyON_GOTO, "ON {expr:string} GOTO {lines:[]int}")
 	p.lexer.MustAdd(KeyPRINT, "PRINT{raw:string}")
 	p.lexer.MustAdd(KeyPRINT_EMPTY, "PRINT")
-	p.lexer.MustAdd(KeyREAD, "READ {expr:string}")
+	p.lexer.MustAdd(KeyREAD, "READ {vars:[]string?sep=,}")
 	p.lexer.MustAdd(KeyREM, "REM{expr:string}")
 	p.lexer.MustAdd(KeyREM_EMPTY, "REM")
 	p.lexer.MustAdd(KeyRESTORE, "RESTORE")
@@ -130,12 +130,11 @@ func (p *Parser) mustParseStmt(stmtRaw string) Stmt {
 	if err != nil {
 		panic(errors.Wrapf(err, "eval stmt %q", stmtRaw))
 	}
-	//fmt.Printf("%q: %s\n", key, ps.Format())
 
 	switch key {
 	case KeyDATA:
 		return DATA{
-			Expr: lex.MustParam[string](ps, "expr"),
+			Consts: splitOutsideQuotes(lex.MustParam[string](ps, "raw"), ','),
 		}
 	case KeyDEF:
 		return DEF{
@@ -193,7 +192,7 @@ func (p *Parser) mustParseStmt(stmtRaw string) Stmt {
 			ElseStmts: p.mustParseStmts(lex.MustParam[string](ps, "elsestmts")),
 		}
 	case KeyINPUT:
-		return INPUT{}
+		return mustParseInput(lex.MustParam[string](ps, "raw"))
 	case KeyLET:
 		return LET{
 			Var:  lex.MustParam[string](ps, "var"),
@@ -217,15 +216,12 @@ func (p *Parser) mustParseStmt(stmtRaw string) Stmt {
 		}
 	case KeyPRINT:
 		return mustParsePrint(lex.MustParam[string](ps, "raw"))
-
-		// return PRINT{
-		// 	//Exprs: mustParseExpressions(lex.MustParam[[]string](ps, "exprs")),
-		// 	Raw: lex.MustParam[string](ps, "raw"),
-		// }
 	case KeyPRINT_EMPTY:
 		return PRINT{}
 	case KeyREAD:
-		return READ{}
+		return READ{
+			Vars: lex.MustParam[[]string](ps, "vars"),
+		}
 	case KeyRESTORE:
 		return RESTORE{}
 	case KeyRETURN:

@@ -1,5 +1,7 @@
 package gobas
 
+import "strings"
+
 /*
 Quote from https://www.c64-wiki.de/wiki/PRINT
 
@@ -31,6 +33,7 @@ func mustParsePrint(raw string) PRINT {
 	print := PRINT{}
 	var curr string
 	flush := func() {
+		curr = strings.TrimSpace(curr)
 		if curr == "" {
 			return
 		}
@@ -40,6 +43,7 @@ func mustParsePrint(raw string) PRINT {
 	}
 
 	var inQuotes bool
+	var bcount int
 	for _, r := range raw {
 		if r == '"' {
 			if !inQuotes {
@@ -56,12 +60,18 @@ func mustParsePrint(raw string) PRINT {
 			curr += string(r)
 			continue
 		}
-		if r == ';' {
+		if r == '(' {
+			bcount++
+		}
+		if r == ')' {
+			bcount--
+		}
+		if bcount == 0 && r == ';' {
 			flush()
 			print.Items = append(print.Items, printSemicolon{})
 			continue
 		}
-		if r == ',' {
+		if bcount == 0 && r == ',' {
 			flush()
 			print.Items = append(print.Items, printComma{})
 			continue
