@@ -39,6 +39,7 @@ const (
 	ls     = "<"
 	gt     = ">"
 	eq     = "="
+	neq    = "<>"
 	lseq   = "<="
 	gteq   = ">="
 	and    = "AND "
@@ -48,9 +49,9 @@ const (
 var ops = []string{
 	lseq,
 	gteq,
+	neq,
 	and,
 	or,
-
 	plus,
 	minus,
 	times,
@@ -130,6 +131,8 @@ func (p *Parser) Parse() (*Stack, error) {
 			stack.Push(OpGt, ev)
 		case eq:
 			stack.Push(OpEq, ev)
+		case neq:
+			stack.Push(OpNotEq, ev)
 		case lseq:
 			stack.Push(OpLsEq, ev)
 		case gteq:
