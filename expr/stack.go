@@ -148,7 +148,7 @@ func (s *Stack) Eval(lu Lookuper, funcs *Funcs) (interface{}, error) {
 		if err != nil {
 			return 0, err
 		}
-		return convertToFloat(v)
+		return ConvertToFloat(v)
 	}
 
 	// if there is more than 1 elt on the stack it must be convertible to float64 (ops +/*/^)

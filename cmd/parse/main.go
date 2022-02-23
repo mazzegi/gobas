@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -18,9 +17,9 @@ func main() {
 		return
 	}
 	fmt.Printf("parsed in %s\n", time.Since(t0))
-
-	for _, stmt := range stmts {
-		js, _ := json.Marshal(stmt)
-		fmt.Printf("%T: %s\n", stmt, string(js))
-	}
+	_ = stmts
+	// for _, stmt := range stmts {
+	// 	js, _ := json.Marshal(stmt)
+	// 	fmt.Printf("%T: %s\n", stmt, string(js))
+	// }
 }

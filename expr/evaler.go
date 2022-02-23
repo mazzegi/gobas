@@ -102,7 +102,7 @@ func (e FloatFuncEvaler) Eval(lu Lookuper, funcs *Funcs) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	f, err := convertToFloat(v)
+	f, err := ConvertToFloat(v)
 	if err != nil {
 		return nil, err
 	}

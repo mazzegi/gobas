@@ -17,20 +17,23 @@ type Parser struct {
 	lexer *lex.Set
 }
 
-func (p *Parser) ParseFile(fileName string) ([]Stmt, error) {
+func (p *Parser) ParseFile(fileName string) (*State, error) {
 	rls, err := rawReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}
-	var stmts []Stmt
+	state := &State{}
 	for _, rl := range rls {
 		lineStmts, err := p.parseLine(rl)
 		if err != nil {
 			return nil, err
 		}
-		stmts = append(stmts, lineStmts...)
+		state.lines = append(state.lines, Line{
+			num:   rl.num,
+			stmts: lineStmts,
+		})
 	}
-	return stmts, nil
+	return state, nil
 }
 
 // private stuff

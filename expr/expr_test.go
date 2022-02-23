@@ -144,7 +144,7 @@ func TestFloatExpr(t *testing.T) {
 						t.Fatalf("expect NO eval error, but got %v", err)
 					}
 				} else {
-					f, err := convertToFloat(v)
+					f, err := ConvertToFloat(v)
 					if err != nil {
 						t.Fatalf("expect NO convert-float error, but got %v", err)
 					}
@@ -317,7 +317,7 @@ func TestBoolExpr(t *testing.T) {
 						t.Fatalf("expect NO eval error, but got %v", err)
 					}
 				} else {
-					f, err := convertToFloat(v)
+					f, err := ConvertToFloat(v)
 					if err != nil {
 						t.Fatalf("expect NO convert-float error, but got %v", err)
 					}
